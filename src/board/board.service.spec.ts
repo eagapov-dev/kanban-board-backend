@@ -96,8 +96,8 @@ describe('BoardService', () => {
   });
 
   describe('update', () => {
-    it('should update board name', async () => {
-      prisma.board.findFirst.mockResolvedValue(mockBoard);
+    it('should update board name when owner', async () => {
+      prisma.board.findUnique.mockResolvedValue(mockBoard);
       prisma.board.update.mockResolvedValue({ ...mockBoard, name: 'Updated' });
 
       const result = await service.update('board-1', 'owner-1', { name: 'Updated' });
@@ -108,16 +108,40 @@ describe('BoardService', () => {
       });
       expect(result.name).toBe('Updated');
     });
+
+    it('should throw ForbiddenException if not owner', async () => {
+      prisma.board.findUnique.mockResolvedValue(mockBoard);
+
+      await expect(service.update('board-1', 'not-owner', { name: 'x' })).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw NotFoundException if board not found', async () => {
+      prisma.board.findUnique.mockResolvedValue(null);
+
+      await expect(service.update('not-found', 'owner-1', { name: 'x' })).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('remove', () => {
-    it('should delete board', async () => {
-      prisma.board.findFirst.mockResolvedValue(mockBoard);
+    it('should delete board when owner', async () => {
+      prisma.board.findUnique.mockResolvedValue(mockBoard);
       prisma.board.delete.mockResolvedValue(mockBoard);
 
       await service.remove('board-1', 'owner-1');
 
       expect(prisma.board.delete).toHaveBeenCalledWith({ where: { id: 'board-1' } });
+    });
+
+    it('should throw ForbiddenException if not owner', async () => {
+      prisma.board.findUnique.mockResolvedValue(mockBoard);
+
+      await expect(service.remove('board-1', 'not-owner')).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should throw NotFoundException if board not found', async () => {
+      prisma.board.findUnique.mockResolvedValue(null);
+
+      await expect(service.remove('not-found', 'owner-1')).rejects.toThrow(NotFoundException);
     });
   });
 

@@ -60,7 +60,9 @@ export class BoardService {
   }
 
   async update(id: string, userId: string, dto: UpdateBoardDto) {
-    await this.findOne(id, userId);
+    const board = await this.prisma.board.findUnique({ where: { id } });
+    if (!board) throw new NotFoundException('Board not found');
+    if (board.userId !== userId) throw new ForbiddenException('Only the owner can update this board');
 
     return this.prisma.board.update({
       where: { id },
@@ -69,7 +71,9 @@ export class BoardService {
   }
 
   async remove(id: string, userId: string) {
-    await this.findOne(id, userId);
+    const board = await this.prisma.board.findUnique({ where: { id } });
+    if (!board) throw new NotFoundException('Board not found');
+    if (board.userId !== userId) throw new ForbiddenException('Only the owner can delete this board');
 
     return this.prisma.board.delete({ where: { id } });
   }
