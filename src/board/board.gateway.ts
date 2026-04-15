@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
+import { Task, Board } from '@prisma/client';
 
 interface PresenceUser {
   userId: string;
@@ -17,7 +18,7 @@ interface PresenceUser {
 }
 
 @WebSocketGateway({
-  cors: { origin: 'http://localhost:5173' },
+  cors: { origin: process.env.CORS_ORIGIN || 'http://localhost:5173' },
   namespace: '/board',
 })
 export class BoardGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -186,11 +187,11 @@ export class BoardGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   // Public methods for services to call
 
-  emitTaskCreated(boardId: string, task: any) {
+  emitTaskCreated(boardId: string, task: Task) {
     this.server.to(`board:${boardId}`).emit('taskCreated', task);
   }
 
-  emitTaskUpdated(boardId: string, task: any) {
+  emitTaskUpdated(boardId: string, task: Task) {
     this.server.to(`board:${boardId}`).emit('taskUpdated', task);
   }
 
@@ -198,7 +199,7 @@ export class BoardGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.server.to(`board:${boardId}`).emit('taskDeleted', { taskId });
   }
 
-  emitBoardUpdated(boardId: string, board: any) {
+  emitBoardUpdated(boardId: string, board: Board) {
     this.server.to(`board:${boardId}`).emit('boardUpdated', board);
   }
 
