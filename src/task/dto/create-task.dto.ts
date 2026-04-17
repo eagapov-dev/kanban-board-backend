@@ -13,7 +13,4 @@ export class CreateTaskDto {
   @IsEnum(Priority)
   @IsOptional()
   priority?: Priority;
-
-  @IsString()
-  boardId: string;
 }

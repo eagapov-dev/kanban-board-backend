@@ -1,5 +1,4 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
 import { BoardService } from './board.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { BoardGateway } from './board.gateway';
@@ -23,7 +22,6 @@ describe('BoardService', () => {
       board: {
         create: jest.fn(),
         findMany: jest.fn(),
-        findFirst: jest.fn(),
         findUnique: jest.fn(),
         update: jest.fn(),
         delete: jest.fn(),
@@ -81,26 +79,22 @@ describe('BoardService', () => {
 
   describe('findOne', () => {
     it('should return board with tasks', async () => {
-      prisma.board.findFirst.mockResolvedValue(mockBoard);
+      prisma.board.findUnique.mockResolvedValue(mockBoard);
 
-      const result = await service.findOne('board-1', 'owner-1');
+      const result = await service.findOne('board-1');
 
+      expect(prisma.board.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'board-1' } }),
+      );
       expect(result).toEqual(mockBoard);
-    });
-
-    it('should throw NotFoundException if board not found', async () => {
-      prisma.board.findFirst.mockResolvedValue(null);
-
-      await expect(service.findOne('not-found', 'owner-1')).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', () => {
-    it('should update board name when owner', async () => {
-      prisma.board.findUnique.mockResolvedValue(mockBoard);
+    it('should update board name', async () => {
       prisma.board.update.mockResolvedValue({ ...mockBoard, name: 'Updated' });
 
-      const result = await service.update('board-1', 'owner-1', { name: 'Updated' });
+      const result = await service.update('board-1', { name: 'Updated' });
 
       expect(prisma.board.update).toHaveBeenCalledWith({
         where: { id: 'board-1' },
@@ -108,49 +102,23 @@ describe('BoardService', () => {
       });
       expect(result.name).toBe('Updated');
     });
-
-    it('should throw ForbiddenException if not owner', async () => {
-      prisma.board.findUnique.mockResolvedValue(mockBoard);
-
-      await expect(service.update('board-1', 'not-owner', { name: 'x' })).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should throw NotFoundException if board not found', async () => {
-      prisma.board.findUnique.mockResolvedValue(null);
-
-      await expect(service.update('not-found', 'owner-1', { name: 'x' })).rejects.toThrow(NotFoundException);
-    });
   });
 
   describe('remove', () => {
-    it('should delete board when owner', async () => {
-      prisma.board.findUnique.mockResolvedValue(mockBoard);
+    it('should delete board', async () => {
       prisma.board.delete.mockResolvedValue(mockBoard);
 
-      await service.remove('board-1', 'owner-1');
+      await service.remove('board-1');
 
       expect(prisma.board.delete).toHaveBeenCalledWith({ where: { id: 'board-1' } });
-    });
-
-    it('should throw ForbiddenException if not owner', async () => {
-      prisma.board.findUnique.mockResolvedValue(mockBoard);
-
-      await expect(service.remove('board-1', 'not-owner')).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should throw NotFoundException if board not found', async () => {
-      prisma.board.findUnique.mockResolvedValue(null);
-
-      await expect(service.remove('not-found', 'owner-1')).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('invite', () => {
-    it('should add user to subscribedUsers', async () => {
-      prisma.board.findUnique.mockResolvedValue(mockBoard);
+    it('should add user to subscribedUsers and emit event', async () => {
       prisma.board.update.mockResolvedValue({ ...mockBoard, subscribedUsers: [{ id: 'user-2' }] });
 
-      await service.invite('board-1', 'owner-1', 'user-2');
+      await service.invite('board-1', 'user-2');
 
       expect(prisma.board.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -159,26 +127,13 @@ describe('BoardService', () => {
       );
       expect(gateway.emitBoardInvited).toHaveBeenCalledWith('user-2');
     });
-
-    it('should throw ForbiddenException if not owner', async () => {
-      prisma.board.findUnique.mockResolvedValue(mockBoard);
-
-      await expect(service.invite('board-1', 'not-owner', 'user-2')).rejects.toThrow(ForbiddenException);
-    });
-
-    it('should throw NotFoundException if board not found', async () => {
-      prisma.board.findUnique.mockResolvedValue(null);
-
-      await expect(service.invite('not-found', 'owner-1', 'user-2')).rejects.toThrow(NotFoundException);
-    });
   });
 
   describe('kick', () => {
-    it('should remove user from subscribedUsers', async () => {
-      prisma.board.findUnique.mockResolvedValue(mockBoard);
+    it('should remove user from subscribedUsers and emit event', async () => {
       prisma.board.update.mockResolvedValue({ ...mockBoard, subscribedUsers: [] });
 
-      await service.kick('board-1', 'owner-1', 'user-2');
+      await service.kick('board-1', 'user-2');
 
       expect(prisma.board.update).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -186,12 +141,6 @@ describe('BoardService', () => {
         }),
       );
       expect(gateway.emitBoardKicked).toHaveBeenCalledWith('user-2', 'board-1');
-    });
-
-    it('should throw ForbiddenException if not owner', async () => {
-      prisma.board.findUnique.mockResolvedValue(mockBoard);
-
-      await expect(service.kick('board-1', 'not-owner', 'user-2')).rejects.toThrow(ForbiddenException);
     });
   });
 });

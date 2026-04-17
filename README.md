@@ -111,13 +111,13 @@ DIRECT_DATABASE_URL="postgres://postgres:postgres@localhost:51214/template1?sslm
 | POST | /board/:id/invite | Invite user to board |
 | DELETE | /board/:id/kick/:userId | Remove user from board |
 
-### Tasks
+### Tasks (nested under board)
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | /task | Create task |
-| GET | /task?boardId=... | List tasks for board |
-| PATCH | /task/:id | Update task (with optimistic locking) |
-| DELETE | /task/:id | Delete task |
+| POST | /board/:boardId/task | Create task |
+| GET | /board/:boardId/task | List tasks for board |
+| PATCH | /board/:boardId/task/:id | Update task (with optimistic locking) |
+| DELETE | /board/:boardId/task/:id | Delete task |
 
 ### Users
 | Method | Endpoint | Description |
